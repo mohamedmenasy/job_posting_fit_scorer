@@ -85,3 +85,12 @@ async def test_timeout_is_reported(public_dns):
     with pytest.raises(FetchError) as err:
         await HttpFetcher(transport=transport(handler)).get("https://a.test/j")
     assert err.value.code == "timeout"
+
+
+async def test_compressed_bodies_are_decoded_once(public_dns):
+    import gzip
+    payload = gzip.compress(b'{"title": "Android Engineer"}')
+    pages = {"https://a.test/j": httpx2.Response(200, content=payload,
+                                                 headers={"content-encoding": "gzip", "content-type": "application/json"})}
+    response = await HttpFetcher(transport=routes(pages)).get("https://a.test/j")
+    assert response.json() == {"title": "Android Engineer"}

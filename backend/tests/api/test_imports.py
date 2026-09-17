@@ -54,3 +54,40 @@ def test_rejects_oversized_upload(app_client):
     big = b"company,title,description\n" + b"a,b,cccc\n" * 501
     assert preview(app_client, big).status_code == 413
     assert preview(app_client, b"company,title\n").status_code == 422
+
+
+# --- POST /api/import/url ------------------------------------------------------------------
+
+import pytest  # noqa: E402
+
+from app.ingest.fetch.base import FetchedPosting, FetchError  # noqa: E402
+
+SAMPLE = FetchedPosting(company="Acme", title="Android Engineer", location="Remote", description="Build apps. " * 10,
+                        source_url="https://careers.acme.com/1", provider="greenhouse", confidence="structured")
+
+
+def stub_fetch(app, result):
+    async def fetch(url: str):
+        if isinstance(result, Exception):
+            raise result
+        return result
+    app.state.fetch_posting = fetch
+
+
+def test_import_url_returns_extracted_posting(app_client):
+    stub_fetch(app_client.app, SAMPLE)
+    r = app_client.post("/api/import/url", json={"url": "https://careers.acme.com/1"})
+    assert r.status_code == 200
+    posting = r.json()["posting"]
+    assert posting["company"] == "Acme" and posting["confidence"] == "structured"
+    assert app_client.get("/api/jobs").json()["stats"]["total"] == 0  # nothing stored
+
+
+@pytest.mark.parametrize("code,status", [
+    ("blocked_site", 403), ("robots_disallow", 403), ("unsupported_scheme", 400), ("private_address", 400),
+    ("not_found", 404), ("too_large", 413), ("no_content", 422), ("upstream_error", 502), ("timeout", 504),
+])
+def test_fetch_errors_map_to_status_codes(app_client, code, status):
+    stub_fetch(app_client.app, FetchError(code, "explanation for the user"))
+    r = app_client.post("/api/import/url", json={"url": "https://careers.acme.com/1"})
+    assert r.status_code == status and r.json()["detail"] == "explanation for the user"

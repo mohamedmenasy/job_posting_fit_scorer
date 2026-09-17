@@ -190,6 +190,23 @@ class RescoreOut(BaseModel):
     rescored: int
 
 
+class FetchedPostingOut(BaseModel):
+    company: str | None
+    title: str | None
+    location: str | None
+    description: str
+    salary_text: str | None
+    source: JobSource
+    source_url: str
+    provider: str
+    confidence: Literal["structured", "extracted"]
+    warnings: list[str]
+
+
+class ImportUrlOut(BaseModel):
+    posting: FetchedPostingOut
+
+
 class CsvPreviewOut(BaseModel):
     columns: list[str]
     suggested_mapping: dict[str, str | None]

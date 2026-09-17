@@ -1,15 +1,32 @@
 """Import endpoints: CSV files now, posting URLs in the next task (import §7)."""
 
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
 
 from app.api.deps import SessionDep
-from app.api.schemas import CsvCommitOut, CsvPreviewOut
+from app.api.schemas import CsvCommitOut, CsvPreviewOut, ImportUrlOut
+from app.ingest.fetch import FetchError, fetch_posting
+from app.ingest.fetch.base import ERROR_STATUS
 from app.ingest.csv_import import MAX_BYTES, CsvError, parse_csv, rows_from_mapping, suggest_mapping
 from app.ingest.normalize import get_or_create_job
 
 router = APIRouter(tags=["import"])
 PREVIEW_ROWS = 5
+
+
+class ImportUrlIn(BaseModel):
+    url: str = Field(max_length=2000)
+
+
+@router.post("/import/url", response_model=ImportUrlOut)
+async def import_url(body: ImportUrlIn, request: Request):
+    """Fetch a public posting and return what was extracted. Stores nothing (import §7)."""
+    fetch = getattr(request.app.state, "fetch_posting", fetch_posting)
+    try:
+        posting = await fetch(body.url)
+    except FetchError as error:
+        raise HTTPException(ERROR_STATUS.get(error.code, 502), error.message) from None
+    return {"posting": posting.model_dump()}
 
 
 @router.post("/import/csv", response_model=CsvPreviewOut)

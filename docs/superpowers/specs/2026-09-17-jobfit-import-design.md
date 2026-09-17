@@ -28,7 +28,7 @@ dashboard counts until you complete it.
 | # | Decision | Choice |
 |---|----------|--------|
 | D1 | Scope | CSV import + URL fetch. Compare and duplicate detection get their own spec. |
-| D2 | URL coverage | Public ATS JSON APIs (Greenhouse, Lever, Ashby, Workable) with a generic HTML fallback. Login-walled sites (LinkedIn, Indeed, Glassdoor) are refused by name, never circumvented. |
+| D2 | URL coverage | Public ATS JSON APIs (Greenhouse, Lever, Ashby) with a generic HTML fallback. Workable was dropped during implementation: its public job endpoint returns 404 for anonymous GETs, so it could not be verified; Workable URLs fall back to HTML extraction. Login-walled sites (LinkedIn, Indeed, Glassdoor) are refused by name, never circumvented. |
 | D3 | CSV columns | Any headers; the server guesses a mapping and the user confirms it before import. |
 | D4 | Evaluation on import | Never automatic. Import stores jobs; evaluation stays an explicit action. |
 | D5 | Failed rows and fetches | Stored as drafts (D7), never silently dropped. Per-row errors are reported. |
@@ -130,9 +130,8 @@ Each provider recognizes its URL shape, derives the public API endpoint, and map
 | Greenhouse | `boards.greenhouse.io/<board>/jobs/<id>`, `job-boards.greenhouse.io/<board>/jobs/<id>` | `https://boards-api.greenhouse.io/v1/boards/<board>/jobs/<id>` |
 | Lever | `jobs.lever.co/<org>/<id>` | `https://api.lever.co/v0/postings/<org>/<id>` |
 | Ashby | `jobs.ashbyhq.com/<org>/<id>` | `https://api.ashbyhq.com/posting-api/job-board/<org>`, then the posting whose `id` matches `<id>` |
-| Workable | `apply.workable.com/<org>/j/<code>` | `https://apply.workable.com/api/v1/accounts/<org>/jobs/<code>` |
 
-Exact response shapes are pinned by recorded-response tests written against a real call during implementation; any mismatch raises `upstream_error`. Descriptions arrive as HTML and go through the same sanitizer as §4.3 so line segmentation (core §6.1) sees
+Response shapes are pinned by responses recorded from the real endpoints (`tests/fixtures/http/`, with `SOURCES.md` naming each URL); any mismatch raises `upstream_error`. Greenhouse double-escapes its posting HTML, so it is unescaped once before tags are stripped. Lever and Ashby do not return a company name, so it is derived from the board slug and flagged in `warnings`. Descriptions arrive as HTML and go through the same sanitizer as §4.3 so line segmentation (core §6.1) sees
 clean text. `confidence` is `structured`; `source` is `company_site`.
 
 If an ATS API returns 404 or an unexpected shape, the provider raises `upstream_error` rather than silently
@@ -272,7 +271,7 @@ posting and assert a non-empty description, so provider drift is detectable on p
 
 ## 10. Dependencies
 
-`selectolax` (HTML parsing; small, no C++ toolchain) is added to the backend. CSV, `urllib.robotparser`,
+`selectolax` (HTML parsing; small, no C++ toolchain) is added to the backend and is also used to strip ATS description HTML. CSV, `urllib.robotparser`,
 `ipaddress`, and `socket` come from the standard library. `httpx2` already ships with the TypeSafe SDK and is
 used for outbound fetches. No new frontend dependencies.
 
@@ -288,7 +287,7 @@ used for outbound fetches. No new frontend dependencies.
 
 | risk | mitigation |
 |------|------------|
-| ATS APIs change shape | One provider per site, each with a recorded-response test and an opt-in live check; failures raise `upstream_error` instead of producing a bad job. |
+| ATS APIs change shape | One provider per site, each with a recorded-response test and an opt-in live check (`pytest -m live_http`); failures raise `upstream_error` instead of producing a bad job. |
 | Generic extraction yields noisy descriptions | Marked `extracted` in the UI, fields left blank rather than guessed, and the user reviews before saving. Evidence lines stay quotable because the text is not rewritten. |
 | A user pastes a URL behind a login | Blocked-site list plus a clear message; `no_content` covers unknown login walls. |
 | Importing many jobs tempts bulk evaluation | Import never evaluates; the UI shows what evaluation will cost before the user starts it. |

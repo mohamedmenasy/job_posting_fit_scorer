@@ -128,8 +128,10 @@ class HttpFetcher:
                     raise FetchError("too_large", "That page is too large to import")
         finally:
             await response.aclose()
-        return httpx2.Response(response.status_code, headers=response.headers, content=bytes(body),
-                               request=response.request)
+        # aiter_bytes already decoded the body, so the transfer headers must not travel with the copy
+        headers = {k: v for k, v in response.headers.items()
+                   if k.lower() not in ("content-encoding", "content-length", "transfer-encoding")}
+        return httpx2.Response(response.status_code, headers=headers, content=bytes(body), request=response.request)
 
     @staticmethod
     def _checked(response: httpx2.Response) -> httpx2.Response:
