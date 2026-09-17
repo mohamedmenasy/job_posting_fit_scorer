@@ -2,6 +2,7 @@ from typing import get_args
 
 from fastapi import APIRouter, Request
 
+from app.api.schemas import HealthOut, MetaOut
 from app.domain import DEFAULT_TRACKED_SKILLS, ENUMS
 from app.scoring.explain import YEARS, label
 from app.semantic.catalog import EVALUATOR_VERSION
@@ -13,7 +14,7 @@ LABELS = {"ios": "iOS", "ai_ml": "AI/ML", "kotlin_multiplatform": "Kotlin Multip
           "company_site": "Company site", "linkedin": "LinkedIn", **{k: f"{v} years" for k, (_, v) in YEARS.items()}}
 
 
-@router.get("/meta")
+@router.get("/meta", response_model=MetaOut)
 def get_meta(request: Request):
     return {"enums": {name: [{"value": v, "label": LABELS.get(v) or label(v.lower())} for v in get_args(enum)]
                       for name, enum in ENUMS.items()},
@@ -21,7 +22,7 @@ def get_meta(request: Request):
             "evaluator_version": EVALUATOR_VERSION, "model": request.app.state.evaluator.model}
 
 
-@router.get("/health")
+@router.get("/health", response_model=HealthOut)
 def health(request: Request):
     settings = request.app.state.settings
     return {"status": "ok", "evaluator": settings.evaluator, "model": request.app.state.evaluator.model,

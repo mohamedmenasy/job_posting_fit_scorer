@@ -5,7 +5,8 @@ from fastapi import APIRouter, HTTPException, UploadFile
 from sqlalchemy import select
 
 from app.api.deps import SessionDep
-from app.domain import CandidateProfileIn, semantic_hash
+from app.api.schemas import ProfileSaveOut, ResumeTextOut
+from app.domain import CandidateProfile, CandidateProfileIn, semantic_hash
 from app.models import JobPostingRow, ProfileVersion
 from app.pipeline.worker import latest_succeeded, rescore_all
 from app.repo import current_profile, to_domain_profile
@@ -19,7 +20,7 @@ def _content(row: ProfileVersion) -> dict:
                               blocker_facts=row.blocker_facts, tracked_skills=row.tracked_skills).model_dump(mode="json")
 
 
-@router.get("/profile")
+@router.get("/profile", response_model=CandidateProfile)
 def get_profile(session: SessionDep):
     row = current_profile(session)
     if row is None:
@@ -27,7 +28,7 @@ def get_profile(session: SessionDep):
     return to_domain_profile(row).model_dump(mode="json")
 
 
-@router.put("/profile")
+@router.put("/profile", response_model=ProfileSaveOut)
 def put_profile(body: CandidateProfileIn, session: SessionDep):
     current = current_profile(session)
     content = body.model_dump(mode="json")
@@ -48,7 +49,7 @@ def put_profile(body: CandidateProfileIn, session: SessionDep):
             "affected_jobs": affected, "rescored": rescored}
 
 
-@router.post("/profile/resume/extract")
+@router.post("/profile/resume/extract", response_model=ResumeTextOut)
 async def extract_resume(file: UploadFile):
     data = await file.read(MAX_UPLOAD + 1)
     if len(data) > MAX_UPLOAD:
