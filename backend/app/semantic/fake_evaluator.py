@@ -2,7 +2,7 @@
 
 from app.domain import CandidateProfile, Evidence, JobPosting, RequirementLine, SemanticJobEvaluation, SkillSignal
 from app.semantic.catalog import EVALUATOR_VERSION, EVIDENCE_TARGETS, build_questions, catalog_hash, question_set_hash, technologies
-from app.semantic.fake_fixtures import ch, fixture, sc
+from app.semantic.fake_fixtures import FIXTURES, ch, fixture, sc
 from app.semantic.lines import eligible_ids, segment
 
 
@@ -10,7 +10,10 @@ class FakeJobSemanticEvaluator:
     model = "fake"
 
     async def evaluate(self, profile: CandidateProfile, job: JobPosting) -> SemanticJobEvaluation:
-        name = (job.external_id or "").removeprefix("fixture:")
+        name = (job.external_id or "").removeprefix("fixture:") if (job.external_id or "").startswith("fixture:") else None
+        if name is None:  # a pasted fixture posting (e.g. from the UI) selects that fixture
+            pasted = " ".join(job.description.split())
+            name = next((n for n, fx in FIXTURES.items() if " ".join(fx["posting"]["description"].split()) == pasted), None)
         fx = fixture(name)
         lines = segment(job.description)
         prefs = profile.preferences

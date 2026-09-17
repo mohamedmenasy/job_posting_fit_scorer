@@ -16,7 +16,8 @@ SOURCES = ["linkedin", "company_site", "indeed", "recruiter_email", "manual", "c
 
 
 def seed(database_url: str) -> dict:
-    settings = Settings(_env_file=None, evaluator="fake", database_url=database_url, typesafe_api_key=None)
+    settings = Settings(_env_file=None, evaluator="fake", database_url=database_url, typesafe_api_key=None,
+                        log_level="warning")
     with TestClient(create_app(settings)) as client:
         profile_created = client.get("/api/profile").status_code == 404
         if profile_created:

@@ -36,3 +36,10 @@ async def test_every_fixture_builds():
 def test_score_helper_weighted_mean():
     s = sc(2.7, 4)
     assert abs(sum(k * v for k, v in s.probabilities.items()) - 2.7) < 1e-9 and s.normalized == 0.9
+
+
+async def test_pasted_fixture_posting_selects_fixture_without_external_id():
+    posting = FIXTURES["explicit_no_sponsorship"]["posting"]
+    job = make_job(**{**posting, "description": posting["description"].replace("\n", "\n\n")})
+    ev = await FakeJobSemanticEvaluator().evaluate(make_profile(), job)
+    assert ev.work_authorization_signal.value == "explicit_no_sponsorship"
