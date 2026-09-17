@@ -662,7 +662,7 @@ class JobSemanticEvaluator(Protocol):
 ```
 
 - `TypeSafeJobSemanticEvaluator(client_factory, model, budget, semaphore)`: segment → build states → build questions → pack → call → parse. Uses `AsyncTypeSafeClient` with `RetryPolicy(max_retries=3, timeout=120.0)` (total retry budget) and a per-request HTTP timeout of 30 s.
-- `FakeJobSemanticEvaluator(fixtures_dir)`: returns the signals of a `SemanticJobEvaluation` fixture chosen by the job's `external_id` (`fixture:<name>`, e.g. `fixture:flutter_heavy`), or the default fixture. It runs the real segmentation on the job description for `all_lines`/`lines`; fixture evidence or requirement lines referencing line IDs that do not exist in the job are dropped. Used by unit/API/e2e tests, the seed script, and `EVALUATOR=fake` dev mode.
+- `FakeJobSemanticEvaluator()`: returns the signals of a fixture chosen by the job's `external_id` (`fixture:<name>`, e.g. `fixture:flutter_heavy`), or the default fixture. Fixtures are Python builders in `semantic/fake_fixtures.py`, each with a realistic sample posting (reused by the seed script and live golden set). It runs the real segmentation on the job description for `all_lines`/`lines`; fixture evidence and requirement lines are located by case-insensitive substring of line text, and entries matching no line are dropped. Used by unit/API/e2e tests, the seed script, and `EVALUATOR=fake` dev mode.
 - Selection: `EVALUATOR=typesafe|fake` (default `typesafe`; startup fails with a clear message if the key is missing in `typesafe` mode).
 
 ### 6.7 Debug rebuild
