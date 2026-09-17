@@ -33,4 +33,4 @@ e2e:
 	cd frontend && npm run e2e
 
 screenshots:
-	cd frontend && npx playwright test --grep @screenshots
+	mkdir -p docs/screenshots && cd frontend && SCREENSHOTS=1 npx playwright test --grep @screenshots

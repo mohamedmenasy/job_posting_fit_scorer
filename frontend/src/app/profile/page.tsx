@@ -111,11 +111,12 @@ function Group({ title, description, children }: { title: string; description?: 
 
 const SELECTED = "px-3 data-[state=on]:bg-brand-soft data-[state=on]:text-brand data-[state=on]:font-medium";
 
-function FactControl({ id, value, onChange }: { id: string; value: boolean | null | undefined; onChange: (v: boolean | null) => void }) {
+function FactControl({ id, label, value, onChange }: { id: string; label: string; value: boolean | null | undefined; onChange: (v: boolean | null) => void }) {
   const current = value === true ? "yes" : value === false ? "no" : "unset";
   return (
     <ToggleGroup
       id={id}
+      aria-label={label}
       type="single"
       variant="outline"
       size="sm"
@@ -328,7 +329,7 @@ function ProfileForm({ initial, meta, isNew }: { initial: ProfileIn; meta: S["Me
           ] as const
         ).map(([key, label]) => (
           <Field key={key} label={label} htmlFor={key} hint="rescore">
-            <FactControl id={key} value={draft.blocker_facts[key]} onChange={(v) => setFacts({ [key]: v })} />
+            <FactControl id={key} label={label} value={draft.blocker_facts[key]} onChange={(v) => setFacts({ [key]: v })} />
           </Field>
         ))}
       </Group>
