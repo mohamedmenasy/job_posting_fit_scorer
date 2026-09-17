@@ -9,6 +9,8 @@ from pydantic import BaseModel
 
 from app.domain import (
     CandidateProfile,
+    ImportSource,
+    JobStatus,
     EvaluationStatus,
     FitStatus,
     JobFitResult,
@@ -22,6 +24,8 @@ from app.scoring.config import ScoringConfig
 
 class JobOut(BaseModel):
     id: UUID
+    status_kind: JobStatus
+    import_source: ImportSource
     company: str
     title: str
     location: str | None
@@ -77,6 +81,8 @@ class JobDetailOut(BaseModel):
 
 class JobRowOut(BaseModel):
     id: UUID
+    status_kind: JobStatus
+    import_source: ImportSource
     company: str
     title: str
     location: str | None
@@ -101,6 +107,7 @@ class JobRowOut(BaseModel):
 
 class JobStatsOut(BaseModel):
     total: int
+    drafts: int
     evaluated: int
     strong: int
     good: int
@@ -120,6 +127,10 @@ class JobListOut(BaseModel):
 class CreateJobOut(BaseModel):
     job: JobOut
     created: bool
+
+
+class JobPatchOut(BaseModel):
+    job: JobOut
 
 
 class BatchOut(BaseModel):

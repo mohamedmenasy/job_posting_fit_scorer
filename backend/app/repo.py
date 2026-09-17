@@ -22,7 +22,8 @@ def to_domain_job(row: JobPostingRow) -> JobPosting:
     return JobPosting(id=row.id, company=row.company, title=row.title, description=row.description,
                       location=row.location, source=row.source, source_url=row.source_url,
                       salary_text=row.salary_text, external_id=row.external_id, content_hash=row.content_hash,
-                      created_at=row.created_at, imported_at=row.imported_at)
+                      created_at=row.created_at, imported_at=row.imported_at, status=row.status,
+                      import_source=row.import_source)
 
 
 def active_config(session: Session) -> ScoringConfigRow:

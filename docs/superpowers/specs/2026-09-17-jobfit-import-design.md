@@ -50,9 +50,9 @@ ImportSource = Literal["paste", "url", "csv"]
 
 ### 3.2 `JobPosting`
 
-- `status: JobStatus = "ready"`, `import_source: ImportSource = "paste"`.
+- `status: JobStatus = "ready"`, `import_source: ImportSource = "paste"` (exposed in the API as `status_kind` and `import_source`).
 - `JobPostingIn.description` keeps its 50-character minimum. A new `JobDraftIn` allows `description` of any
-  length, including empty, and is the only way to create a `draft`.
+  length, including empty, carries `import_source`, and is the only way to create a `draft` (`POST /api/jobs/draft`).
 - A `draft` job may be edited (§7, `PATCH /api/jobs/{id}`). A `ready` job may not; editing means creating a new job, because evidence
   line IDs must keep pointing at the text that was evaluated (core §5.3).
 - A job becomes `ready` when an edit brings its description to 50+ characters. It never returns to `draft`.
@@ -65,7 +65,7 @@ migration matches the models, as in core §13.2.
 
 ### 3.4 Dashboard and counts
 
-- `GET /api/jobs` accepts `status` (`draft` | `ready`, repeatable). Default: `ready` only.
+- `GET /api/jobs` accepts `state` (`draft` | `ready`, repeatable). Default: `ready` only. The name avoids colliding with the existing `status` filter, which selects fit status (`STRONG_MATCH` …); API output calls the posting's own state `status_kind` for the same reason.
 - `JobStatsOut` gains `drafts`. All other counts continue to describe `ready` jobs only, so a pile of unfinished
   drafts cannot make the pipeline look larger than it is.
 - Drafts are never enqueued: `POST /api/jobs/{id}/evaluate`, `POST /api/jobs/reevaluate`, and the batch endpoint
@@ -221,7 +221,7 @@ URLs the user pastes, the trade is not worth it. This is recorded here so it is 
 | `POST /api/import/csv` | Multipart file. Returns `{columns, suggested_mapping, row_count, preview: rows[0:5], delimiter, encoding}`. Stores nothing. |
 | `POST /api/import/csv/commit` | Body `{mapping, rows}` (rows echoed back from the preview step, ≤ 500). Returns `{created, duplicates, drafts, errors: [{row, reason}], job_ids}`. |
 | `PATCH /api/jobs/{id}` | Body: any of company, title, description, location, salary_text, source, source_url, external_id. Draft only: 409 `"Evaluated jobs are immutable — create a new job instead"` when the job is `ready`. Recomputes `content_hash`; if the new hash already exists, returns 409 with the existing job's id. Promotes to `ready` when the description reaches 50 characters. |
-| `GET /api/jobs` | Gains `status[]`; defaults to `ready`. Stats gain `drafts`. |
+| `GET /api/jobs` | Gains `state[]` (`draft` \| `ready`); defaults to `ready`. Rows gain `status_kind` and `import_source`. Stats gain `drafts`, and every other count describes `ready` jobs only. |
 
 `POST /api/evaluate` keeps its current behavior for pasted postings and rejects drafts the same way as the other
 evaluation endpoints.
