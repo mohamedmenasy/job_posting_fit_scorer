@@ -190,6 +190,29 @@ class RescoreOut(BaseModel):
     rescored: int
 
 
+class CsvPreviewOut(BaseModel):
+    columns: list[str]
+    suggested_mapping: dict[str, str | None]
+    row_count: int
+    preview: list[dict[str, str]]
+    rows: list[dict[str, str]]
+    delimiter: str
+    encoding: str
+
+
+class CsvRowError(BaseModel):
+    row: int
+    reason: str
+
+
+class CsvCommitOut(BaseModel):
+    created: int
+    duplicates: int
+    drafts: int
+    errors: list[CsvRowError]
+    job_ids: list[UUID]
+
+
 class EnumOption(BaseModel):
     value: str
     label: str
