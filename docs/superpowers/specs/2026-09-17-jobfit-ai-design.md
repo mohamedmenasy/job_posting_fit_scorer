@@ -932,7 +932,7 @@ Portable types only (`Uuid`, `JSON`, `Float`, `String`, `Text`, `Boolean`, `Date
 - Headline Choice columns store the selected value; Score columns store the raw score; Noul columns store the probability.
 - `EvaluationSignal`, `SkillMatch`, `MissingSkill`, `HardBlocker`, `Explanation` are Pydantic models persisted inside JSON columns. Promote to tables only if cross-job analytics need them.
 - History is append-only; `DELETE /api/jobs/{id}` cascades to that job's evaluations and fit results.
-- On first startup, the default scoring config is inserted as version 1 and activated.
+- On startup the app runs `alembic upgrade head` (local single-user app; `make migrate` does the same by hand), then inserts the default scoring config as version 1 and activates it if none exists.
 
 ## 9. API (`/api`, FastAPI, JSON)
 
