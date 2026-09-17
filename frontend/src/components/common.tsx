@@ -10,7 +10,6 @@ import {
   COMPONENT_LABEL,
   type FitStatus,
   STATUS_CLASS,
-  STATUS_FILL,
   STATUS_LABEL,
   band,
   cnJoin,
@@ -86,7 +85,7 @@ export function ScoreLedger({ fit, compact = false }: { fit: S["FitResultOut"]; 
         const segment = (
           <div
             key={c.name}
-            className={cnJoin("h-full", STATUS_FILL[fit.status], i > 0 && "border-background border-l")}
+            className={cnJoin("bg-brand h-full", i > 0 && "border-background border-l")}
             style={{ width: `${c.contribution}%`, opacity: shades[i] ?? 0.2 }}
           />
         );

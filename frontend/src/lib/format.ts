@@ -37,14 +37,6 @@ export const STATUS_CLASS: Record<FitStatus, string> = {
   BLOCKED: "text-status-blocked bg-status-blocked/10 border-status-blocked/30",
 };
 
-export const STATUS_FILL: Record<FitStatus, string> = {
-  STRONG_MATCH: "bg-status-strong",
-  GOOD_MATCH: "bg-status-good",
-  REVIEW: "bg-status-review",
-  LOW_MATCH: "bg-status-low",
-  BLOCKED: "bg-status-blocked",
-};
-
 export const pct = (x: number | null | undefined) => (x == null ? "—" : `${Math.round(x * 100)}%`);
 export const score = (x: number | null | undefined) => (x == null ? "—" : Math.round(x).toString());
 export const fixed = (x: number, digits = 1) => x.toFixed(digits);
@@ -76,8 +68,9 @@ export const COMPONENT_LABEL: Record<string, string> = {
   management: "Management",
 };
 
-/** Components backed by a single Score question, shown as x/levels-1 (spec §11.1). */
-export const COMPONENT_SCALE: Record<string, number> = { technical: 4, android: 4, seniority: 4, domain: 4, role_preference: 3 };
+/** Components that are exactly one Score question, shown as x/levels-1 (spec §11.1). Domain is excluded: it blends
+ * domain fit with preferred-domain probability when preferred domains are set. */
+export const COMPONENT_SCALE: Record<string, number> = { technical: 4, android: 4, seniority: 4, role_preference: 3 };
 
 export function shortId(id: string) {
   return id.slice(0, 8);
