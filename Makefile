@@ -11,7 +11,7 @@ test:
 	cd backend && uv run pytest
 
 test-live:
-	cd backend && uv run pytest -m live
+	cd backend && uv run pytest -m live $(ARGS)
 
 migrate:
 	cd backend && uv run alembic upgrade head
