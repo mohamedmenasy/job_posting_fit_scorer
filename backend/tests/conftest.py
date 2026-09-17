@@ -71,3 +71,33 @@ def make_semantic(**overrides):
         model="fake", evaluator_version="1.0.0", catalog_hash="c", question_set_hash="q", requests=[])
     data.update(overrides)
     return SemanticJobEvaluation(**data)
+
+
+import time  # noqa: E402
+
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+
+
+def make_settings(tmp_path, **over):
+    from app.config import Settings
+    return Settings(_env_file=None, database_url=f"sqlite:///{tmp_path}/t.db", evaluator="fake", evaluation_workers=2,
+                    typesafe_api_key=None, **over)
+
+
+@pytest.fixture
+def app_client(tmp_path):
+    from app.main import create_app
+    with TestClient(create_app(make_settings(tmp_path))) as client:
+        yield client
+
+
+def wait_for(client, evaluation_id, timeout=10.0) -> dict:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        data = client.get(f"/api/evaluations/{evaluation_id}").json()
+        if data["status"] in ("succeeded", "failed"):
+            assert data["status"] == "succeeded", data["error"]
+            return data
+        time.sleep(0.02)
+    raise AssertionError(f"evaluation {evaluation_id} did not finish")
