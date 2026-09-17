@@ -105,3 +105,9 @@ def wait_for(client, evaluation_id, timeout=10.0) -> dict:
             return data
         time.sleep(0.02)
     raise AssertionError(f"evaluation {evaluation_id} did not finish")
+
+
+@pytest.fixture
+def public_dns(monkeypatch):
+    """Resolve every test hostname to a public address so URL guard tests never touch DNS."""
+    monkeypatch.setattr("app.ingest.fetch.url_guard.resolve_addresses", lambda host: ["93.184.216.34"])
