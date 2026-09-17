@@ -4,7 +4,6 @@ Bump EVALUATOR_VERSION whenever question wording, state format, segmentation, or
 tests/unit/test_catalog.py pins catalog_hash() per version.
 """
 
-import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Literal, get_args
@@ -19,6 +18,7 @@ from app.domain import (
     TrackedSkill,
     canonical_json,
     sha256,
+    tech_slug,
 )
 from app.semantic.lines import SEGMENTATION_VERSION, eligible_ids
 
@@ -230,10 +230,6 @@ def _static_job_questions() -> list[Q]:
 
 def _skill_text(skill: TrackedSkill) -> str:
     return f"{skill.label}: {skill.description}" if skill.description else skill.label
-
-
-def tech_slug(text: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")
 
 
 def technologies(prefs: CandidatePreferences) -> dict[str, str]:

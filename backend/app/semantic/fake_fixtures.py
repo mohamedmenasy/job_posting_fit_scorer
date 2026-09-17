@@ -190,7 +190,7 @@ What you'll need
 - 4+ years of Android development with Kotlin
 - A passion for public service
 This is a remote role open to candidates across the US."""},
-        "seniority": ch("mid", 0.7, options="Seniority"), "title_level": ch("mid", 0.7, options="Seniority"),
+        "seniority": ch("senior", 0.7, options="Seniority"), "title_level": ch("unclear", 0.8, options="Seniority"),
         "staff_ic_signal": nl(0.15), "kmp_requirement": ch("not_mentioned", 0.9, options="RequirementLevel"),
         "domain": ch("government_defense", 0.85, options="Domain"), "security_clearance_required": nl(0.05),
         "min_years_required": ch("y3_4", 0.8, options="YearsBucket"), "role_preference_fit": sc(1.8, 4),

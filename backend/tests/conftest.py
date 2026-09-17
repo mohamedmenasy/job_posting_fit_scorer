@@ -50,3 +50,24 @@ def fake_answers_for_bodies(questions: dict[str, dict]) -> dict[str, dict]:
 
 def fake_answers(questions) -> dict[str, dict]:
     return fake_answers_for_bodies({q.id: q.body for q in questions})
+
+
+def make_semantic(**overrides):
+    """Neutral baseline SemanticJobEvaluation: mid-level scores, other/unclear choices, low Nouls."""
+    from app.domain import SemanticJobEvaluation
+    from app.semantic.fake_fixtures import ch, nl, sc
+    data = dict(
+        role_family=ch("other", 0.9, options="RoleFamily"), android_relevance=sc(2, 5),
+        seniority=ch("unclear", 0.9, options="Seniority"), title_level=ch("unclear", 0.9, options="Seniority"),
+        staff_ic_signal=nl(0.05), management_intensity=sc(2, 5),
+        kmp_requirement=ch("not_mentioned", 0.9, options="RequirementLevel"), cross_platform_intensity=sc(2, 5),
+        domain=ch("other", 0.9, options="Domain"), work_arrangement=ch("unclear", 0.9, options="WorkArrangement"),
+        requires_relocation=nl(0.05), security_clearance_required=nl(0.05), us_citizenship_required=nl(0.05),
+        work_authorization_signal=ch("not_stated", 0.9, options="WorkAuthSignal"),
+        min_years_required=ch("not_stated", 0.9, options="YearsBucket"),
+        technical_fit=sc(2, 5), seniority_fit=sc(2, 5), domain_fit=sc(2, 5),
+        role_preference_fit=None, location_match=None,
+        skills={}, technologies={}, lines=[], all_lines={}, evidence={},
+        model="fake", evaluator_version="1.0.0", catalog_hash="c", question_set_hash="q", requests=[])
+    data.update(overrides)
+    return SemanticJobEvaluation(**data)

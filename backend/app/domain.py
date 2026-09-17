@@ -40,6 +40,10 @@ def sha256(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+def tech_slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")
+
+
 # ---------------------------------------------------------------- candidate profile (§5.2)
 
 class CandidatePreferences(BaseModel):
