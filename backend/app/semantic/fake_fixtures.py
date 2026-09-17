@@ -270,3 +270,44 @@ def fixture(name: str | None) -> dict:
         elif key != "posting":
             merged[key] = value
     return merged
+
+
+# Synthetic candidate used by the seed script, demo screenshots, and the live golden set. Not a real person.
+SAMPLE_RESUME = """Alex Rivera — Staff Android Engineer
+Remote, United States
+
+Summary
+Android engineer with 11 years building consumer and fintech apps in Kotlin and Java. Sets technical direction
+across mobile teams, owns app architecture, and mentors senior engineers.
+
+Experience
+Staff Android Engineer, PayRoute (fintech), 2021–present
+- Led Android architecture for a banking app with 3M monthly users: modularization into 40 Gradle modules, MVI with
+  Kotlin Coroutines and Flow, offline-first sync
+- Drove the migration of 120 screens from XML views to Jetpack Compose across three product teams
+- Set up CI/CD with GitHub Actions and Gradle build caching; cut release time from two days to two hours
+- Mentored six senior engineers; ran Android design reviews and the mobile architecture guild
+
+Senior Android Engineer, CartNest (e-commerce), 2017–2021
+- Built checkout and payments features in Kotlin; introduced unit and Espresso UI testing (70% coverage)
+- Prototyped shared networking code with Kotlin Multiplatform for Android and iOS
+
+Android Engineer, Tripsy (travel), 2014–2017
+- Shipped booking flows in Java; improved cold start time by 35%
+
+Skills
+Kotlin, Java, Jetpack Compose, Coroutines, Flow, Dagger/Hilt, Room, Gradle, GitHub Actions, Espresso, JUnit,
+system design, technical leadership
+"""
+
+DEMO_PREFERENCES = {
+    "preferred_roles": ["Staff Android Engineer", "Mobile Tech Lead"],
+    "preferred_locations": ["Remote US"],
+    "preferred_levels": ["staff", "principal"],
+    "preferred_role_families": ["android_native", "kotlin_multiplatform"],
+    "avoided_role_families": ["flutter"],
+    "preferred_domains": ["fintech", "healthcare"],
+    "remote_preference": "remote",
+    "management_preference": "ic",
+    "years_experience": 11,
+}

@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
 from app.api.deps import SessionDep
+from app.api.schemas import EvaluationDetailOut, EvaluationOut, RequestRebuildOut
 from app.api.serializers import evaluation_out
 from app.models import JobEvaluation
 from app.repo import to_domain_job, to_domain_profile
@@ -21,18 +22,18 @@ def _get(session, evaluation_id: UUID) -> JobEvaluation:
     return row
 
 
-@router.get("/evaluations")
+@router.get("/evaluations", response_model=list[EvaluationOut])
 def list_evaluations(job_id: UUID, session: SessionDep):
     rows = session.scalars(select(JobEvaluation).where(JobEvaluation.job_id == job_id).order_by(JobEvaluation.created_at))
     return [evaluation_out(r) for r in rows]
 
 
-@router.get("/evaluations/{evaluation_id}")
+@router.get("/evaluations/{evaluation_id}", response_model=EvaluationDetailOut)
 def get_evaluation(evaluation_id: UUID, session: SessionDep):
     return evaluation_out(_get(session, evaluation_id), signals=True, raw=True)
 
 
-@router.get("/evaluations/{evaluation_id}/request")
+@router.get("/evaluations/{evaluation_id}/request", response_model=RequestRebuildOut)
 def rebuild_request(evaluation_id: UUID, session: SessionDep):
     """Debug: rebuild the exact states and questions from stored inputs and current code (spec §6.7)."""
     row = _get(session, evaluation_id)

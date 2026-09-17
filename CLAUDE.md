@@ -4,10 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Backend implemented (plan `docs/superpowers/plans/2026-09-17-jobfit-backend.md`); frontend, live golden set,
-seed script, and README are Plan B (not written yet). The approved design is
+Phase 1 implemented (plans in `docs/superpowers/plans/`). The approved design is
 `docs/superpowers/specs/2026-09-17-jobfit-ai-design.md` ("spec §N" below) and is the source of truth.
-Implementation plans go in `docs/superpowers/plans/`. If a design decision changes, update the spec in the same change.
+If a design decision changes, update the spec in the same change. Phase 2/3 need their own spec and plan.
 
 JobFit AI is a local, single-user job-posting evaluator: resume/profile + job posting → TypeSafe System
 One typed signals → deterministic scorer → ranked dashboard. FastAPI backend (`backend/`, uv) + Next.js
@@ -15,11 +14,19 @@ frontend (`frontend/`, proxies `/api/*` to FastAPI), SQLite via SQLAlchemy 2 + A
 
 ## Commands
 
-- Backend (real): `make setup` · `make dev` (uvicorn `--factory app.main:create_app`, single process) · `make test` · `make test-live` · `make migrate`
+- `make setup` · `make dev` (uvicorn `--factory app.main:create_app` single process + `next dev`) · `make test` (backend pytest, no network + frontend `tsc`/ESLint/`next build`) · `make e2e` (Playwright smoke, fake evaluator, ports 8010/3010) · `make seed` · `make types` · `make screenshots` · `make migrate`
 - Single backend test: `cd backend && uv run pytest tests/<path>/test_x.py::test_name`
-- `EVALUATOR=fake` runs the whole app and tests without an API key; the fake picks fixtures from `app/semantic/fake_fixtures.py` by job `external_id` `fixture:<name>`.
-- Planned (Plan B, spec §14): frontend checks in `make test`, `make types`, `make seed`; `pytest -m live` with record/replay cassettes.
-- The app runs Alembic migrations on startup; after changing `app/models.py`, add a revision (`uv run alembic revision --autogenerate`) — `tests/api/test_migrations.py` fails if models and migrations drift.
+- Live golden set: `make test-live` replays `backend/tests/live/cassettes/` (skips when none); `make test-live ARGS=--record` needs `TYPESAFE_API_KEY` + `TYPESAFE_MODEL`. Committed cassettes may only contain `SAMPLE_RESUME`.
+- `EVALUATOR=fake` runs everything without an API key. Fixtures live in `backend/app/semantic/fake_fixtures.py` and are chosen by `external_id` `fixture:<name>` or by pasting a fixture's exact sample posting.
+- Backend scripts run as modules: `uv run python -m scripts.seed_demo`, `uv run python -m scripts.export_openapi`.
+- The app runs Alembic migrations on startup; after changing `app/models.py`, add a revision (`uv run alembic revision --autogenerate`) — `tests/api/test_migrations.py` fails on drift.
+
+## Frontend notes
+
+- Next.js 16 (read `frontend/node_modules/next/dist/docs/` before using unfamiliar APIs): `params` are async (client pages use `useParams`), `useSearchParams` needs a `<Suspense>` boundary, `next lint` is gone (use `npm run lint`).
+- TanStack Table is **v9** (`useTable` + `tableFeatures`, not v8 `useReactTable`); sorting/filtering are server-side via URL params.
+- API types are generated: change backend response models in `backend/app/api/schemas.py`, then `make types`; never hand-edit `frontend/src/lib/api/schema.d.ts`.
+- Colors come from tokens in `globals.css` (`--brand`, `--status-*`); status color is for status badges only, bars use `--brand`.
 
 ## Architecture invariants (span many files — keep them true)
 

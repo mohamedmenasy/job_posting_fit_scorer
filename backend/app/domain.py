@@ -259,7 +259,9 @@ class RequestMeta(BaseModel):
     raw_response: dict
 
 
-class SemanticJobEvaluation(BaseModel):
+class SemanticSignals(BaseModel):
+    """All semantic signals and metadata except raw request data (what evaluations store in `signals`)."""
+
     role_family: ChoiceSignal
     android_relevance: ScoreSignal
     seniority: ChoiceSignal
@@ -289,6 +291,9 @@ class SemanticJobEvaluation(BaseModel):
     evaluator_version: str
     catalog_hash: str
     question_set_hash: str
+
+
+class SemanticJobEvaluation(SemanticSignals):
     requests: list[RequestMeta]
 
 

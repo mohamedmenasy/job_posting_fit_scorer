@@ -12,6 +12,10 @@ from app.domain import (
 )
 
 
+def pytest_addoption(parser):
+    parser.addoption("--record", action="store_true", help="live tests: call real TypeSafe and refresh cassettes")
+
+
 def make_profile(blocker_facts=None, tracked_skills=None, resume_text="Staff Android engineer, Kotlin, Compose",
                  **prefs) -> CandidateProfile:
     base = CandidateProfileIn(resume_text=resume_text, preferences=CandidatePreferences(**prefs),

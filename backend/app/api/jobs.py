@@ -7,6 +7,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import defer, selectinload
 
 from app.api.deps import SessionDep, WorkerDep, require_profile
+from app.api.schemas import (
+    BatchOut,
+    CreateJobOut,
+    EnqueuedOut,
+    EvaluatePostingOut,
+    EvaluationIdsOut,
+    JobDetailOut,
+    JobListOut,
+)
 from app.api.serializers import evaluation_out, fit_out, job_out
 from app.domain import JobPostingIn
 from app.ingest.normalize import get_or_create_job
@@ -24,7 +33,7 @@ def _job(session, job_id: UUID) -> JobPostingRow:
     return row
 
 
-@router.post("/jobs", status_code=201)
+@router.post("/jobs", status_code=201, response_model=CreateJobOut)
 def create_job(body: JobPostingIn, session: SessionDep, response: Response):
     row, created = get_or_create_job(session, body)
     session.commit()
@@ -38,7 +47,7 @@ class BatchIn(BaseModel):
     auto_evaluate: bool = False
 
 
-@router.post("/jobs/batch")
+@router.post("/jobs/batch", response_model=BatchOut)
 def batch_create(body: BatchIn, session: SessionDep, worker: WorkerDep):
     profile = require_profile(session) if body.auto_evaluate else None
     created, existing, evaluation_ids = 0, 0, []
@@ -74,7 +83,7 @@ def _row(job: JobPostingRow) -> dict:
             "latest_evaluation_id": latest.id if latest else None}
 
 
-@router.get("/jobs")
+@router.get("/jobs", response_model=JobListOut)
 def list_jobs(
     session: SessionDep,
     q: str | None = None,
@@ -140,7 +149,7 @@ def list_jobs(
     return {"rows": rows[offset:offset + limit], "total_filtered": len(rows), "stats": stats}
 
 
-@router.get("/jobs/{job_id}")
+@router.get("/jobs/{job_id}", response_model=JobDetailOut)
 def get_job(job_id: UUID, session: SessionDep):
     row = _job(session, job_id)
     fit = row.current_fit_result
@@ -166,7 +175,7 @@ def _enqueue(session, worker, job_id: UUID, profile_id: UUID) -> UUID:
     return evaluation_id
 
 
-@router.post("/jobs/{job_id}/evaluate", status_code=202)
+@router.post("/jobs/{job_id}/evaluate", status_code=202, response_model=EnqueuedOut)
 def evaluate_job(job_id: UUID, session: SessionDep, worker: WorkerDep):
     _job(session, job_id)
     profile = require_profile(session)
@@ -177,14 +186,14 @@ class ReevaluateIn(BaseModel):
     job_ids: list[UUID] | None = None
 
 
-@router.post("/jobs/reevaluate", status_code=202)
+@router.post("/jobs/reevaluate", status_code=202, response_model=EvaluationIdsOut)
 def reevaluate(body: ReevaluateIn, session: SessionDep, worker: WorkerDep):
     profile = require_profile(session)
     ids = body.job_ids if body.job_ids is not None else session.scalars(select(JobPostingRow.id)).all()
     return {"evaluation_ids": [_enqueue(session, worker, _job(session, i).id, profile.id) for i in ids]}
 
 
-@router.post("/evaluate", status_code=202)
+@router.post("/evaluate", status_code=202, response_model=EvaluatePostingOut)
 def evaluate_posting(body: JobPostingIn, session: SessionDep, worker: WorkerDep, response: Response):
     """Create (or find) a job and evaluate it — the paste flow and future browser-extension entry point."""
     profile = require_profile(session)
