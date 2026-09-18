@@ -195,6 +195,18 @@ silent and explicit sponsorship, Flutter-heavy, engineering manager, Staff title
 against a synthetic resume, and checks signal ranges and evidence lines. Recorded cassettes contain only that synthetic
 resume. Use these runs to calibrate thresholds before trusting defaults.
 
+## Running this yourself
+
+JobFit is built for one person on one machine. Before you point it at anything shared, note that FastAPI listens on
+`127.0.0.1` with **no authentication**, and anyone who can reach that port can read your resume and your saved jobs.
+Add authentication before hosting it.
+
+You need your own [TypeSafe](https://typesafe.ai) API key. Evaluating one job costs roughly 150–250 typed questions
+across two requests, so a large import can add up; nothing is ever evaluated without you asking.
+
+JobFit is not affiliated with TypeSafe, Greenhouse, Lever, Ashby, or any job board. URL fetching uses those boards'
+public APIs and honors `robots.txt`; sites that require a login are refused rather than worked around.
+
 ## Privacy
 
 - Everything runs locally. FastAPI listens on `127.0.0.1` with no authentication; add authentication before hosting it
@@ -214,3 +226,8 @@ resume. Use these runs to calibrate thresholds before trusting defaults.
   calls `POST /api/evaluate`; notifications for new strong matches. It will never apply to jobs for you.
 
 ![Profile](docs/screenshots/profile.png)
+
+## License
+
+MIT — see [LICENSE](LICENSE). Sample postings, the demo resume, and the recorded API fixtures in
+`backend/tests/fixtures/` are synthetic; they describe no real person or employer.

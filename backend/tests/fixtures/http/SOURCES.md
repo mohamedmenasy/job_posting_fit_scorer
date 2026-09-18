@@ -1,7 +1,11 @@
 # Recorded provider responses
 
-Fetched once from public endpoints; used so provider tests never touch the network.
+These files keep the **shape** of each job board's public API so provider tests never touch the network.
+They were captured once from the endpoints below, then the job text, titles, companies and URLs were replaced
+with synthetic content — the postings belong to those employers, not to this project.
 
-- `greenhouse_job.json  https://boards-api.greenhouse.io/v1/boards/stripe/jobs/8172508`
-- `lever_job.json  https://api.lever.co/v0/postings/leverdemo/681fbc53-1e34-4a46-8677-3a78118674eb?mode=json`
-- `ashby_board.json  https://api.ashbyhq.com/posting-api/job-board/ramp?includeCompensation=true`
+- `greenhouse_job.json` — `https://boards-api.greenhouse.io/v1/boards/<board>/jobs/<id>`
+- `lever_job.json` — `https://api.lever.co/v0/postings/<org>/<id>?mode=json`
+- `ashby_board.json` — `https://api.ashbyhq.com/posting-api/job-board/<org>?includeCompensation=true`
+
+`pytest -m live_http` checks the real endpoints on purpose, so shape drift is still caught.
