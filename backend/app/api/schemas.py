@@ -9,6 +9,8 @@ from pydantic import BaseModel
 
 from app.domain import (
     CandidateProfile,
+    ImportSource,
+    JobStatus,
     EvaluationStatus,
     FitStatus,
     JobFitResult,
@@ -22,6 +24,8 @@ from app.scoring.config import ScoringConfig
 
 class JobOut(BaseModel):
     id: UUID
+    status_kind: JobStatus
+    import_source: ImportSource
     company: str
     title: str
     location: str | None
@@ -77,6 +81,8 @@ class JobDetailOut(BaseModel):
 
 class JobRowOut(BaseModel):
     id: UUID
+    status_kind: JobStatus
+    import_source: ImportSource
     company: str
     title: str
     location: str | None
@@ -101,6 +107,7 @@ class JobRowOut(BaseModel):
 
 class JobStatsOut(BaseModel):
     total: int
+    drafts: int
     evaluated: int
     strong: int
     good: int
@@ -120,6 +127,10 @@ class JobListOut(BaseModel):
 class CreateJobOut(BaseModel):
     job: JobOut
     created: bool
+
+
+class JobPatchOut(BaseModel):
+    job: JobOut
 
 
 class BatchOut(BaseModel):
@@ -177,6 +188,46 @@ class ScoringSettingsOut(BaseModel):
 class RescoreOut(BaseModel):
     version: int
     rescored: int
+
+
+class FetchedPostingOut(BaseModel):
+    company: str | None
+    title: str | None
+    location: str | None
+    description: str
+    salary_text: str | None
+    source: JobSource
+    source_url: str
+    provider: str
+    confidence: Literal["structured", "extracted"]
+    warnings: list[str]
+
+
+class ImportUrlOut(BaseModel):
+    posting: FetchedPostingOut
+
+
+class CsvPreviewOut(BaseModel):
+    columns: list[str]
+    suggested_mapping: dict[str, str | None]
+    row_count: int
+    preview: list[dict[str, str]]
+    rows: list[dict[str, str]]
+    delimiter: str
+    encoding: str
+
+
+class CsvRowError(BaseModel):
+    row: int
+    reason: str
+
+
+class CsvCommitOut(BaseModel):
+    created: int
+    duplicates: int
+    drafts: int
+    errors: list[CsvRowError]
+    job_ids: list[UUID]
 
 
 class EnumOption(BaseModel):

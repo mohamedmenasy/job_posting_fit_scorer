@@ -28,6 +28,7 @@ function buildColumns(meta: Meta) {
       header: "Score",
       cell: ({ row }) => {
         const r = row.original;
+        if (r.status_kind === "draft") return <span className="text-muted-foreground text-xs">Needs description</span>;
         if (r.overall_score == null) return <EvaluationState status={r.evaluation_status} error={r.evaluation_error} />;
         return (
           <div className="flex items-center gap-2">

@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.api import evaluations, jobs, meta, profile, settings as settings_api
+from app.api import evaluations, imports, jobs, meta, profile, settings as settings_api
 from app.config import Settings
 from app.db import make_engine, make_session_factory, run_migrations
 from app.logging import configure_logging
@@ -45,6 +45,6 @@ def create_app(settings: Settings | None = None, evaluator: JobSemanticEvaluator
         engine.dispose()
 
     app = FastAPI(title="JobFit AI", lifespan=lifespan)
-    for module in (profile, jobs, evaluations, settings_api, meta):
+    for module in (profile, jobs, imports, evaluations, settings_api, meta):
         app.include_router(module.router, prefix="/api")
     return app

@@ -162,6 +162,53 @@ export function useDeleteJob() {
   });
 }
 
+export type CsvMapping = Record<string, string | null>;
+export type CsvRow = Record<string, string>;
+
+export function useImportUrl() {
+  return useMutation({
+    mutationFn: (url: string) => unwrap(api.POST("/api/import/url", { body: { url } })),
+  });
+}
+
+export function useCsvPreview() {
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      const response = await fetch("/api/import/csv", { method: "POST", body: form });
+      const data = await response.json().catch(() => undefined);
+      if (!response.ok) throw new ApiError(response.status, errorMessage(data, response.statusText));
+      return data as S["CsvPreviewOut"];
+    },
+    onError,
+  });
+}
+
+export function useCsvCommit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ mapping, rows }: { mapping: CsvMapping; rows: CsvRow[] }) =>
+      unwrap(api.POST("/api/import/csv/commit", { body: { mapping, rows } })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["jobs"] }),
+    onError,
+  });
+}
+
+export function usePatchJob(jobId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: S["JobPatch"]) =>
+      unwrap(api.PATCH("/api/jobs/{job_id}", { params: { path: { job_id: jobId } }, body })),
+    onSuccess: () => {
+      toast.success("Job saved");
+      qc.invalidateQueries({ queryKey: ["job", jobId] });
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+    },
+    onError,
+  });
+}
+
 export function useScoringSettings() {
   return useQuery({ queryKey: ["scoring"], queryFn: () => unwrap(api.GET("/api/settings/scoring")) });
 }

@@ -26,10 +26,12 @@ LocationMatch = Literal["in_preferred_location", "outside_preferred_locations", 
 FitStatus = Literal["STRONG_MATCH", "GOOD_MATCH", "REVIEW", "LOW_MATCH", "BLOCKED"]
 EvaluationStatus = Literal["pending", "running", "succeeded", "failed"]
 JobSource = Literal["linkedin", "indeed", "company_site", "recruiter_email", "manual", "other"]
+JobStatus = Literal["draft", "ready"]          # draft: incomplete import, editable, never evaluated
+ImportSource = Literal["paste", "url", "csv"]  # how the posting reached JobFit, not where it was advertised
 
 ENUMS = {name: globals()[name] for name in [
     "RoleFamily", "Seniority", "Domain", "WorkArrangement", "RequirementLevel", "WorkAuthSignal", "YearsBucket",
-    "LineKind", "LocationMatch", "FitStatus", "EvaluationStatus", "JobSource"]}
+    "LineKind", "LocationMatch", "FitStatus", "EvaluationStatus", "JobSource", "JobStatus", "ImportSource"]}
 
 
 def canonical_json(obj) -> str:
@@ -199,11 +201,46 @@ class JobPostingIn(BaseModel):
         return v
 
 
+class JobDraftIn(JobPostingIn):
+    """An incomplete posting (import §3.2): description may be empty until the user completes it."""
+
+    description: str = ""
+    import_source: ImportSource = "paste"
+
+
+class JobPatch(BaseModel):
+    """Fields editable on a draft (import §7). Unset fields are left unchanged."""
+
+    company: str | None = Field(default=None, min_length=1, max_length=200)
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = None
+    location: str | None = None
+    source: JobSource | None = None
+    source_url: HttpUrl | None = None
+    salary_text: str | None = None
+    external_id: str | None = None
+
+    _strip = field_validator("company", "title", "description", "location", "salary_text", "external_id",
+                             mode="before")(lambda cls, v: v.strip() if isinstance(v, str) else v)
+
+    @field_validator("source_url")
+    @classmethod
+    def _http_only(cls, v):
+        if v is not None and v.scheme not in ("http", "https"):
+            raise ValueError("source_url must be http or https")
+        return v
+
+
+MIN_DESCRIPTION = 50
+
+
 class JobPosting(JobPostingIn):
     id: UUID
     content_hash: str
     created_at: datetime
     imported_at: datetime
+    status: JobStatus = "ready"
+    import_source: ImportSource = "paste"
 
 
 # ---------------------------------------------------------------- semantic evaluation (§5.4)

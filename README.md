@@ -85,6 +85,23 @@ startup. Database migrations run automatically on startup (`make migrate` runs t
 | `LOG_LEVEL` | `info` | App logger level (JSON lines) |
 | `BACKEND_URL` (frontend, server-side) | `http://127.0.0.1:8000` | Where Next.js proxies `/api/*` |
 
+## Adding jobs
+
+Three ways, all on the **New job** page:
+
+- **Paste** — copy the posting text. Always works, and it is the fallback whenever fetching is refused.
+- **From URL** — paste a public posting link. Greenhouse, Lever and Ashby URLs use those boards' public APIs, so
+  company, title, location and description come back clean. Any other public page is read as text and marked
+  "Extracted from the page — check the fields". LinkedIn, Indeed, Glassdoor and ZipRecruiter need a login, so JobFit
+  refuses them by name and asks you to paste instead; it never works around a login or a CAPTCHA.
+- **From CSV** — upload a spreadsheet with any column names. JobFit guesses which column is company, title,
+  description and so on, you confirm or change the mapping, and then import. Up to 500 rows.
+
+Importing never evaluates anything, because each evaluation costs TypeSafe requests. Rows arrive as ordinary jobs you
+choose to evaluate, and any row without a usable description is saved as a **draft**: it shows under the Drafts filter,
+cannot be evaluated, and lets you paste the missing text on its page. Once a job has been evaluated its posting is
+frozen, so quoted evidence lines keep matching the text that was scored.
+
 ## How a job is scored
 
 1. **Segment** the posting into numbered lines (`L000`, `L001`, …). Evidence answers are Choices over these IDs, so
@@ -168,6 +185,7 @@ make test                          # backend pytest (no network) + frontend tsc,
 make e2e                           # Playwright smoke test of the full flow, fake evaluator
 make test-live                     # golden set against recorded TypeSafe responses (skips if none recorded)
 make test-live ARGS=--record       # call TypeSafe for real and refresh cassettes (needs key + model)
+cd backend && uv run pytest -m live_http   # check the real job boards still return the expected shapes
 make screenshots                   # regenerate docs/screenshots
 make types                         # regenerate frontend API types from FastAPI's OpenAPI schema
 ```
@@ -181,6 +199,9 @@ resume. Use these runs to calibrate thresholds before trusting defaults.
 
 - Everything runs locally. FastAPI listens on `127.0.0.1` with no authentication; add authentication before hosting it
   anywhere.
+- Fetching a posting URL only reaches public addresses (never localhost, private ranges, or cloud metadata), honors
+  `robots.txt`, follows at most three re-checked redirects, times out after 10 seconds, caps responses at 2 MB, and
+  never sends cookies or credentials.
 - Your API key stays in `backend/.env`, is held as a secret, and is never logged or sent to the browser.
 - Blocker facts and work authorization notes never leave your machine. Resume text and blocker facts are never
   logged.
@@ -188,7 +209,7 @@ resume. Use these runs to calibrate thresholds before trusting defaults.
 
 ## Roadmap
 
-- **Phase 2:** compare 2–5 jobs side by side, duplicate detection, CSV import, fetching public posting URLs.
+- **Phase 2:** compare 2–5 jobs side by side and duplicate detection. CSV import and URL fetching are done.
 - **Phase 3:** Greenhouse, Lever, Ashby, and Workday providers; recruiter emails from Gmail; a browser extension that
   calls `POST /api/evaluate`; notifications for new strong matches. It will never apply to jobs for you.
 

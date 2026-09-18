@@ -44,6 +44,8 @@ class JobPostingRow(Base):
     salary_text: Mapped[str | None] = mapped_column(String(500))
     description: Mapped[str] = mapped_column(Text)
     content_hash: Mapped[str] = mapped_column(String(64), index=True)
+    status: Mapped[str] = mapped_column(String(16), default="ready", server_default="ready", index=True)
+    import_source: Mapped[str] = mapped_column(String(16), default="paste", server_default="paste")
     current_fit_result_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("fit_results.id", ondelete="SET NULL", use_alter=True, name="fk_job_current_fit_result"))
     created_at: Mapped[datetime] = _created()

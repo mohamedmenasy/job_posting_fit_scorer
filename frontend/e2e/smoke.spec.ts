@@ -7,10 +7,8 @@ test("paste a job and see it blocked with evidence", async ({ page }) => {
   const demo = demoData();
   const posting = demo.postings["clearance_required"]!;
 
-  await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Start with your profile" })).toBeVisible();
-
-  await page.getByRole("link", { name: "Create profile" }).click();
+  // Tests share one backend database, so this asserts on its own rows rather than on global counts.
+  await page.goto("/profile");
   await page.locator("#resume").fill(demo.resume);
   await page.getByRole("radiogroup", { name: "Can you meet a security clearance requirement?" }).getByRole("radio", { name: "No", exact: true }).click();
   await page.getByRole("button", { name: "Save profile" }).click();
@@ -36,7 +34,6 @@ test("paste a job and see it blocked with evidence", async ({ page }) => {
   await page.getByRole("link", { name: "Jobs", exact: true }).click();
   const row = page.getByRole("row", { name: new RegExp(posting.company) });
   await expect(row.getByText("Blocked", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Blocked/ })).toContainText("1");
 
   await page.keyboard.press("/");
   await expect(page.locator("#job-search")).toBeFocused();

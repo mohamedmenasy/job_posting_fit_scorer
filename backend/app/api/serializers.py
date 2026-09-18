@@ -2,8 +2,11 @@ from app.models import FitResult, JobEvaluation, JobPostingRow
 
 
 def job_out(row: JobPostingRow) -> dict:
-    return {k: getattr(row, k) for k in ("id", "company", "title", "location", "source", "source_url", "external_id",
-                                         "salary_text", "description", "content_hash", "created_at", "imported_at")}
+    out = {k: getattr(row, k) for k in ("id", "company", "title", "location", "source", "source_url", "external_id",
+                                        "salary_text", "description", "content_hash", "created_at", "imported_at",
+                                        "import_source")}
+    # "status" on a row means fit status, so the posting's own state is exposed as status_kind
+    return {**out, "status_kind": row.status}
 
 
 def fit_out(row: FitResult) -> dict:

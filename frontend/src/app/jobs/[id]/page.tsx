@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { ConfidenceBadge, EmptyState, ScoreLedger, StatusBadge } from "@/components/common";
+import { DraftEditor } from "@/components/job/draft-editor";
 import {
   Blockers,
   Classification,
@@ -77,6 +78,7 @@ export default function JobDetailPage() {
   const evaluation = data?.evaluation ?? null;
   const latest = data?.latest_evaluation ?? null;
   const running = latest?.status === "pending" || latest?.status === "running";
+  const isDraft = data?.job.status_kind === "draft";
   const active = useActiveSection(!!evaluation);
 
   if (job.isPending) return <Skeleton className="h-64 max-w-5xl" />;
@@ -152,6 +154,9 @@ export default function JobDetailPage() {
           {fit && <ScoreLedger fit={fit} />}
 
           <div className="flex flex-wrap items-center gap-2">
+            {isDraft && (
+              <span className="text-muted-foreground bg-muted rounded px-2 py-0.5 text-xs font-medium">Draft</span>
+            )}
             {fit?.needs_review && (
               <span className="text-status-review bg-status-review/10 rounded px-2 py-0.5 text-xs font-medium">Review recommended</span>
             )}
@@ -161,9 +166,15 @@ export default function JobDetailPage() {
               </span>
             )}
             <div className="ml-auto flex gap-2">
-              <Button variant="outline" size="sm" disabled={running || reevaluate.isPending} onClick={() => reevaluate.mutate()}>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={running || reevaluate.isPending || isDraft}
+                title={isDraft ? "Add a job description before evaluating" : undefined}
+                onClick={() => reevaluate.mutate()}
+              >
                 <RefreshCw className="size-3.5" />
-                Re-evaluate
+                {fit ? "Re-evaluate" : "Evaluate"}
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -221,6 +232,8 @@ export default function JobDetailPage() {
             <SignalsTable evaluation={evaluation} />
             <Posting signals={signals} fit={fit} />
           </>
+        ) : isDraft ? (
+          <DraftEditor job={data.job} />
         ) : (
           !running && latest?.status !== "failed" && (
             <p className="text-muted-foreground">This job has not been evaluated yet.</p>

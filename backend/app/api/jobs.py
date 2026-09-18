@@ -10,6 +10,7 @@ from app.api.deps import SessionDep, WorkerDep, require_profile
 from app.api.schemas import (
     BatchOut,
     CreateJobOut,
+    JobPatchOut,
     EnqueuedOut,
     EvaluatePostingOut,
     EvaluationIdsOut,
@@ -17,8 +18,8 @@ from app.api.schemas import (
     JobListOut,
 )
 from app.api.serializers import evaluation_out, fit_out, job_out
-from app.domain import JobPostingIn
-from app.ingest.normalize import get_or_create_job
+from app.domain import JobDraftIn, JobPatch, JobPostingIn
+from app.ingest.normalize import content_hash, find_by_content, get_or_create_job, job_status
 from app.models import FitResult, JobEvaluation, JobPostingRow
 from app.pipeline.worker import create_evaluation
 from app.semantic.catalog import EVALUATOR_VERSION
@@ -40,6 +41,39 @@ def create_job(body: JobPostingIn, session: SessionDep, response: Response):
     if not created:
         response.status_code = 200
     return {"job": job_out(row), "created": created}
+
+
+DRAFT_MESSAGE = "Add a job description before evaluating"
+
+
+@router.post("/jobs/draft", status_code=201, response_model=CreateJobOut)
+def create_draft(body: JobDraftIn, session: SessionDep, response: Response):
+    """Store an incomplete posting (import §3.2). Drafts are editable and never evaluated."""
+    row, created = get_or_create_job(session, body)
+    session.commit()
+    if not created:
+        response.status_code = 200
+    return {"job": job_out(row), "created": created}
+
+
+@router.patch("/jobs/{job_id}", response_model=JobPatchOut)
+def patch_job(job_id: UUID, body: JobPatch, session: SessionDep):
+    row = _job(session, job_id)
+    if any(e.status == "succeeded" for e in row.evaluations):
+        raise HTTPException(409, "Evaluated jobs are immutable — create a new job instead")
+    patch = body.model_dump(exclude_unset=True)
+    for key, value in patch.items():
+        setattr(row, key, str(value) if key == "source_url" and value is not None else value)
+    digest = content_hash(row.company, row.title, row.description)
+    clash = find_by_content(session, digest)
+    if clash is not None and clash.id != row.id:
+        session.rollback()
+        raise HTTPException(409, {"message": "Another job already has this content", "existing_job_id": str(clash.id)})
+    row.content_hash = digest
+    if row.status == "draft":
+        row.status = job_status(row.description)
+    session.commit()
+    return {"job": job_out(row)}
 
 
 class BatchIn(BaseModel):
@@ -74,7 +108,7 @@ def _row(job: JobPostingRow) -> dict:
     latest = job.evaluations[-1] if job.evaluations else None
     headline = ("role_family", "seniority", "domain", "work_arrangement", "kmp_requirement", "work_authorization_signal",
                 "android_relevance", "security_clearance_required")
-    return {"id": job.id, "company": job.company, "title": job.title, "location": job.location, "source": job.source,
+    return {"id": job.id, "status_kind": job.status, "import_source": job.import_source, "company": job.company, "title": job.title, "location": job.location, "source": job.source,
             "created_at": job.created_at, "overall_score": fit.overall_score if fit else None,
             "status": fit.status if fit else None, "aggregate_confidence": fit.aggregate_confidence if fit else None,
             "needs_review": fit.needs_review if fit else None,
@@ -89,6 +123,7 @@ def list_jobs(
     q: str | None = None,
     min_score: float | None = None,
     status: Annotated[list[str] | None, Query()] = None,
+    state: Annotated[list[str] | None, Query()] = None,
     company: str | None = None,
     role_family: Annotated[list[str] | None, Query()] = None,
     seniority: Annotated[list[str] | None, Query()] = None,
@@ -112,14 +147,18 @@ def list_jobs(
         selectinload(JobPostingRow.current_fit_result).selectinload(FitResult.evaluation)
         .options(defer(JobEvaluation.signals), defer(JobEvaluation.raw_typesafe_response)),
     )).all()
-    rows = [_row(j) for j in jobs]
+    all_rows = [_row(j) for j in jobs]
+    wanted = set(state or ["ready"])
+    rows = [r for r in all_rows if r["status_kind"] in wanted]
+    ready = [r for r in all_rows if r["status_kind"] == "ready"]
 
-    stats = {"total": len(rows), "evaluated": sum(r["status"] is not None for r in rows)}
+    stats = {"total": len(ready), "evaluated": sum(r["status"] is not None for r in ready),
+             "drafts": sum(r["status_kind"] == "draft" for r in all_rows)}
     for key, value in (("strong", "STRONG_MATCH"), ("good", "GOOD_MATCH"), ("review", "REVIEW"), ("low", "LOW_MATCH"),
                        ("blocked", "BLOCKED")):
-        stats[key] = sum(r["status"] == value for r in rows)
-    stats["pending"] = sum(r["evaluation_status"] in ("pending", "running") for r in rows)
-    stats["failed"] = sum(r["evaluation_status"] == "failed" for r in rows)
+        stats[key] = sum(r["status"] == value for r in ready)
+    stats["pending"] = sum(r["evaluation_status"] in ("pending", "running") for r in ready)
+    stats["failed"] = sum(r["evaluation_status"] == "failed" for r in ready)
 
     def within(value, allowed):
         return allowed is None or value in allowed
@@ -177,7 +216,9 @@ def _enqueue(session, worker, job_id: UUID, profile_id: UUID) -> UUID:
 
 @router.post("/jobs/{job_id}/evaluate", status_code=202, response_model=EnqueuedOut)
 def evaluate_job(job_id: UUID, session: SessionDep, worker: WorkerDep):
-    _job(session, job_id)
+    row = _job(session, job_id)
+    if row.status == "draft":
+        raise HTTPException(409, DRAFT_MESSAGE)
     profile = require_profile(session)
     return {"evaluation_id": _enqueue(session, worker, job_id, profile.id), "status": "pending"}
 
@@ -189,7 +230,13 @@ class ReevaluateIn(BaseModel):
 @router.post("/jobs/reevaluate", status_code=202, response_model=EvaluationIdsOut)
 def reevaluate(body: ReevaluateIn, session: SessionDep, worker: WorkerDep):
     profile = require_profile(session)
-    ids = body.job_ids if body.job_ids is not None else session.scalars(select(JobPostingRow.id)).all()
+    if body.job_ids is None:
+        ids = session.scalars(select(JobPostingRow.id).where(JobPostingRow.status == "ready")).all()
+    else:
+        ids = body.job_ids
+        for job_id in ids:
+            if _job(session, job_id).status == "draft":
+                raise HTTPException(409, DRAFT_MESSAGE)
     return {"evaluation_ids": [_enqueue(session, worker, _job(session, i).id, profile.id) for i in ids]}
 
 
@@ -198,6 +245,8 @@ def evaluate_posting(body: JobPostingIn, session: SessionDep, worker: WorkerDep,
     """Create (or find) a job and evaluate it — the paste flow and future browser-extension entry point."""
     profile = require_profile(session)
     row, created = get_or_create_job(session, body)
+    if row.status == "draft":
+        raise HTTPException(409, DRAFT_MESSAGE)
     reusable = next((e for e in reversed(row.evaluations)
                      if e.status == "succeeded" and e.profile_version.semantic_hash == profile.semantic_hash
                      and e.evaluator_version == EVALUATOR_VERSION and e.model == worker.evaluator.model), None)

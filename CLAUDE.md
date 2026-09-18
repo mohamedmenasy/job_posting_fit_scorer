@@ -16,6 +16,7 @@ frontend (`frontend/`, proxies `/api/*` to FastAPI), SQLite via SQLAlchemy 2 + A
 
 - `make setup` · `make dev` (uvicorn `--factory app.main:create_app` single process + `next dev`) · `make test` (backend pytest, no network + frontend `tsc`/ESLint/`next build`) · `make e2e` (Playwright smoke, fake evaluator, ports 8010/3010) · `make seed` · `make types` · `make screenshots` · `make migrate`
 - Single backend test: `cd backend && uv run pytest tests/<path>/test_x.py::test_name`
+- E2E shares one backend database across specs and uses its own Next build directory (`NEXT_DIST_DIR=.next-e2e`), so `make e2e` runs even while `make dev` is up. Write order-independent assertions.
 - Live golden set: `make test-live` replays `backend/tests/live/cassettes/` (skips when none); `make test-live ARGS=--record` needs `TYPESAFE_API_KEY` + `TYPESAFE_MODEL`. Committed cassettes may only contain `SAMPLE_RESUME`.
 - `EVALUATOR=fake` runs everything without an API key. Fixtures live in `backend/app/semantic/fake_fixtures.py` and are chosen by `external_id` `fixture:<name>` or by pasting a fixture's exact sample posting.
 - Backend scripts run as modules: `uv run python -m scripts.seed_demo`, `uv run python -m scripts.export_openapi`.
@@ -38,6 +39,9 @@ frontend (`frontend/`, proxies `/api/*` to FastAPI), SQLite via SQLAlchemy 2 + A
 - **Re-scoring is free; re-evaluation costs API calls.** Profile edits create immutable profile versions. Scoring-only preference or config changes re-score stored signals; semantic fields (resume, preferred roles/locations, technologies, tracked skills) require re-evaluation. Evaluations and fit results are append-only history.
 - **Fit score and confidence are never combined, and confidence never changes status.** Noul answers carry no confidence from the API; code derives `|2p−1|` and labels it as derived.
 - **Hard blockers need both** an explicit posting signal at or above the blocker threshold **and** an explicitly set profile fact; otherwise at most a "verify" concern. `work_authorization_signal = not_stated` is never treated as sponsorship available.
+- **All job sources go through `ingest.normalize`** (content hash + dedupe). Postings arriving without a usable description are `draft`: editable via `PATCH /api/jobs/{id}`, refused by every evaluation endpoint, excluded from dashboard counts (`state=draft` to see them). A job is immutable once it has a succeeded evaluation.
+- **Only `ingest/fetch/url_guard.py` makes outbound HTTP** (public addresses only, ≤3 re-checked redirects, robots.txt, 10s timeout, 2 MB cap, no cookies or credentials) — enforced by `tests/unit/test_boundaries.py`. Login-walled sites are refused by name; never add a workaround.
+- **Provider responses are pinned by recordings** in `backend/tests/fixtures/http/` (`SOURCES.md` lists each URL). `make test` opens no sockets; `pytest -m live_http` checks the real boards on purpose.
 - **The evaluation worker is an in-process asyncio queue** — run a single uvicorn process.
 
 ## Working with TypeSafe

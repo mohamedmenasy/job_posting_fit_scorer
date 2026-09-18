@@ -10,6 +10,7 @@ dependencies = [
     "pypdf>=6.19.0",
     "python-docx>=1.2.0",
     "python-multipart>=0.0.32",
+    "selectolax>=0.4.11",
     "sqlalchemy>=2",
     "typesafe-sdk==0.6.*",
     "uvicorn[standard]>=0.53.0",
@@ -25,5 +26,8 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-markers = ["live: hits real TypeSafe (needs TYPESAFE_API_KEY)"]
-addopts = "-m 'not live'"
+markers = [
+    "live: hits real TypeSafe (needs TYPESAFE_API_KEY)",
+    "live_http: fetches real job boards over the network",
+]
+addopts = "-m 'not live and not live_http'"

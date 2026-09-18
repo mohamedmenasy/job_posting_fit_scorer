@@ -97,6 +97,13 @@ export function FilterBar({ query, update, clear, active, meta }: { query: JobsQ
           <Switch checked={!!query.needs_review} onCheckedChange={(v) => update({ needs_review: v || null })} />
           Review recommended
         </label>
+        <label className="text-muted-foreground flex items-center gap-2 px-1 text-xs">
+          <Switch
+            checked={query.state?.includes("draft") ?? false}
+            onCheckedChange={(v) => update({ state: v ? ["draft"] : null })}
+          />
+          Drafts
+        </label>
         {active && (
           <Button
             variant="ghost"
