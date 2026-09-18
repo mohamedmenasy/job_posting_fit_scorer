@@ -8,13 +8,23 @@ type Update = (patch: Record<string, string | string[] | boolean | null>) => voi
 
 export function StatStrip({ stats, query, update }: { stats: S["JobStatsOut"]; query: JobsQuery; update: Update }) {
   const onlyStatus = (s: string) => query.status?.length === 1 && query.status[0] === s;
-  const tiles = [
-    { label: "Jobs evaluated", value: stats.evaluated, sub: stats.pending ? `${stats.pending} in progress` : stats.failed ? `${stats.failed} failed` : `of ${stats.total}`, active: !query.status && !query.needs_review, onClick: () => update({ status: null, needs_review: null }), tone: "" },
-    { label: "Strong matches", value: stats.strong, active: onlyStatus("STRONG_MATCH"), onClick: () => update({ status: ["STRONG_MATCH"], needs_review: null }), tone: "text-status-strong" },
-    { label: "Good matches", value: stats.good, active: onlyStatus("GOOD_MATCH"), onClick: () => update({ status: ["GOOD_MATCH"], needs_review: null }), tone: "text-status-good" },
-    { label: "Need review", value: stats.review, active: onlyStatus("REVIEW"), onClick: () => update({ status: ["REVIEW"], needs_review: null }), tone: "text-status-review" },
-    { label: "Blocked", value: stats.blocked, active: onlyStatus("BLOCKED"), onClick: () => update({ status: ["BLOCKED"], needs_review: null }), tone: "text-status-blocked" },
+  const tiles: { label: string; value: number; sub?: string; active: boolean; onClick: () => void; tone: string }[] = [
+    { label: "Jobs evaluated", value: stats.evaluated, sub: stats.pending ? `${stats.pending} in progress` : stats.failed ? `${stats.failed} failed` : `of ${stats.total}`, active: !query.status && !query.needs_review && !query.state, onClick: () => update({ status: null, needs_review: null, state: null }), tone: "" },
+    { label: "Strong matches", value: stats.strong, active: onlyStatus("STRONG_MATCH"), onClick: () => update({ status: ["STRONG_MATCH"], needs_review: null, state: null }), tone: "text-status-strong" },
+    { label: "Good matches", value: stats.good, active: onlyStatus("GOOD_MATCH"), onClick: () => update({ status: ["GOOD_MATCH"], needs_review: null, state: null }), tone: "text-status-good" },
+    { label: "Need review", value: stats.review, active: onlyStatus("REVIEW"), onClick: () => update({ status: ["REVIEW"], needs_review: null, state: null }), tone: "text-status-review" },
+    { label: "Blocked", value: stats.blocked, active: onlyStatus("BLOCKED"), onClick: () => update({ status: ["BLOCKED"], needs_review: null, state: null }), tone: "text-status-blocked" },
   ];
+  if (stats.drafts > 0) {
+    tiles.push({
+      label: "Drafts",
+      value: stats.drafts,
+      sub: "need a description",
+      active: query.state?.includes("draft") ?? false,
+      onClick: () => update({ state: ["draft"], status: null, needs_review: null }),
+      tone: "text-muted-foreground",
+    });
+  }
   return (
     <div className="mb-4 grid grid-cols-2 border-y sm:grid-cols-5">
       {tiles.map((t) => (

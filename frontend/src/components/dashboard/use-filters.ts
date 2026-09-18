@@ -27,6 +27,7 @@ export function useFilters() {
       min_android_relevance: num("min_android_relevance"),
       clearance: (params.get("clearance") as JobsQuery["clearance"]) || undefined,
       needs_review: params.get("needs_review") === "true" ? true : undefined,
+      state: params.getAll("state").length ? params.getAll("state") : undefined,
       sort: (params.get("sort") as SortKey) || "score",
       order: (params.get("order") as JobsQuery["order"]) || "desc",
       limit: PAGE_SIZE,

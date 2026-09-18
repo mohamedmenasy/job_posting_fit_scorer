@@ -57,7 +57,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/jobs/batch": {
+    "/api/jobs/draft": {
         parameters: {
             query?: never;
             header?: never;
@@ -66,8 +66,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Batch Create */
-        post: operations["batch_create_api_jobs_batch_post"];
+        /**
+         * Create Draft
+         * @description Store an incomplete posting (import §3.2). Drafts are editable and never evaluated.
+         */
+        post: operations["create_draft_api_jobs_draft_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -87,6 +90,24 @@ export interface paths {
         post?: never;
         /** Delete Job */
         delete: operations["delete_job_api_jobs__job_id__delete"];
+        options?: never;
+        head?: never;
+        /** Patch Job */
+        patch: operations["patch_job_api_jobs__job_id__patch"];
+        trace?: never;
+    };
+    "/api/jobs/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Batch Create */
+        post: operations["batch_create_api_jobs_batch_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -140,6 +161,66 @@ export interface paths {
          * @description Create (or find) a job and evaluate it — the paste flow and future browser-extension entry point.
          */
         post: operations["evaluate_posting_api_evaluate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/import/url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Url
+         * @description Fetch a public posting and return what was extracted. Stores nothing (import §7).
+         */
+        post: operations["import_url_api_import_url_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/import/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Csv
+         * @description Parse a CSV and propose a column mapping. Stores nothing.
+         */
+        post: operations["preview_csv_api_import_csv_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/import/csv/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Commit Csv
+         * @description Create jobs from confirmed rows. Never evaluates (import §2 D4); one transaction for the whole file.
+         */
+        post: operations["commit_csv_api_import_csv_commit_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -378,6 +459,11 @@ export interface components {
             /** File */
             file: string;
         };
+        /** Body_preview_csv_api_import_csv_post */
+        Body_preview_csv_api_import_csv_post: {
+            /** File */
+            file: string;
+        };
         /** CandidatePreferences */
         CandidatePreferences: {
             /**
@@ -560,6 +646,60 @@ export interface components {
             /** Created */
             created: boolean;
         };
+        /** CsvCommitIn */
+        CsvCommitIn: {
+            /** Mapping */
+            mapping: {
+                [key: string]: string | null;
+            };
+            /** Rows */
+            rows: {
+                [key: string]: string;
+            }[];
+        };
+        /** CsvCommitOut */
+        CsvCommitOut: {
+            /** Created */
+            created: number;
+            /** Duplicates */
+            duplicates: number;
+            /** Drafts */
+            drafts: number;
+            /** Errors */
+            errors: components["schemas"]["CsvRowError"][];
+            /** Job Ids */
+            job_ids: string[];
+        };
+        /** CsvPreviewOut */
+        CsvPreviewOut: {
+            /** Columns */
+            columns: string[];
+            /** Suggested Mapping */
+            suggested_mapping: {
+                [key: string]: string | null;
+            };
+            /** Row Count */
+            row_count: number;
+            /** Preview */
+            preview: {
+                [key: string]: string;
+            }[];
+            /** Rows */
+            rows: {
+                [key: string]: string;
+            }[];
+            /** Delimiter */
+            delimiter: string;
+            /** Encoding */
+            encoding: string;
+        };
+        /** CsvRowError */
+        CsvRowError: {
+            /** Row */
+            row: number;
+            /** Reason */
+            reason: string;
+        };
         /** EnqueuedOut */
         EnqueuedOut: {
             /**
@@ -732,6 +872,35 @@ export interface components {
             /** Evidence Line Id */
             evidence_line_id: string | null;
         };
+        /** FetchedPostingOut */
+        FetchedPostingOut: {
+            /** Company */
+            company: string | null;
+            /** Title */
+            title: string | null;
+            /** Location */
+            location: string | null;
+            /** Description */
+            description: string;
+            /** Salary Text */
+            salary_text: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "linkedin" | "indeed" | "company_site" | "recruiter_email" | "manual" | "other";
+            /** Source Url */
+            source_url: string;
+            /** Provider */
+            provider: string;
+            /**
+             * Confidence
+             * @enum {string}
+             */
+            confidence: "structured" | "extracted";
+            /** Warnings */
+            warnings: string[];
+        };
         /** FitResultOut */
         FitResultOut: {
             /** Overall Score */
@@ -828,12 +997,56 @@ export interface components {
             /** Queue Depth */
             queue_depth: number;
         };
+        /** ImportUrlIn */
+        ImportUrlIn: {
+            /** Url */
+            url: string;
+        };
+        /** ImportUrlOut */
+        ImportUrlOut: {
+            posting: components["schemas"]["FetchedPostingOut"];
+        };
         /** JobDetailOut */
         JobDetailOut: {
             job: components["schemas"]["JobOut"];
             fit_result: components["schemas"]["FitResultOut"] | null;
             evaluation: components["schemas"]["EvaluationDetailOut"] | null;
             latest_evaluation: components["schemas"]["EvaluationOut"] | null;
+        };
+        /**
+         * JobDraftIn
+         * @description An incomplete posting (import §3.2): description may be empty until the user completes it.
+         */
+        JobDraftIn: {
+            /** Company */
+            company: string;
+            /** Title */
+            title: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Location */
+            location?: string | null;
+            /**
+             * Source
+             * @default manual
+             * @enum {string}
+             */
+            source: "linkedin" | "indeed" | "company_site" | "recruiter_email" | "manual" | "other";
+            /** Source Url */
+            source_url?: string | null;
+            /** Salary Text */
+            salary_text?: string | null;
+            /** External Id */
+            external_id?: string | null;
+            /**
+             * Import Source
+             * @default paste
+             * @enum {string}
+             */
+            import_source: "paste" | "url" | "csv";
         };
         /** JobListOut */
         JobListOut: {
@@ -850,6 +1063,16 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Status Kind
+             * @enum {string}
+             */
+            status_kind: "draft" | "ready";
+            /**
+             * Import Source
+             * @enum {string}
+             */
+            import_source: "paste" | "url" | "csv";
             /** Company */
             company: string;
             /** Title */
@@ -882,6 +1105,32 @@ export interface components {
              */
             imported_at: string;
         };
+        /**
+         * JobPatch
+         * @description Fields editable on a draft (import §7). Unset fields are left unchanged.
+         */
+        JobPatch: {
+            /** Company */
+            company?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Source */
+            source?: ("linkedin" | "indeed" | "company_site" | "recruiter_email" | "manual" | "other") | null;
+            /** Source Url */
+            source_url?: string | null;
+            /** Salary Text */
+            salary_text?: string | null;
+            /** External Id */
+            external_id?: string | null;
+        };
+        /** JobPatchOut */
+        JobPatchOut: {
+            job: components["schemas"]["JobOut"];
+        };
         /** JobPostingIn */
         JobPostingIn: {
             /** Company */
@@ -912,6 +1161,16 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Status Kind
+             * @enum {string}
+             */
+            status_kind: "draft" | "ready";
+            /**
+             * Import Source
+             * @enum {string}
+             */
+            import_source: "paste" | "url" | "csv";
             /** Company */
             company: string;
             /** Title */
@@ -963,6 +1222,8 @@ export interface components {
         JobStatsOut: {
             /** Total */
             total: number;
+            /** Drafts */
+            drafts: number;
             /** Evaluated */
             evaluated: number;
             /** Strong */
@@ -1727,6 +1988,7 @@ export interface operations {
                 q?: string | null;
                 min_score?: number | null;
                 status?: string[] | null;
+                state?: string[] | null;
                 company?: string | null;
                 role_family?: string[] | null;
                 seniority?: string[] | null;
@@ -1803,7 +2065,7 @@ export interface operations {
             };
         };
     };
-    batch_create_api_jobs_batch_post: {
+    create_draft_api_jobs_draft_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1812,17 +2074,17 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["BatchIn"];
+                "application/json": components["schemas"]["JobDraftIn"];
             };
         };
         responses: {
             /** @description Successful Response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BatchOut"];
+                    "application/json": components["schemas"]["CreateJobOut"];
                 };
             };
             /** @description Validation Error */
@@ -1884,6 +2146,74 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_job_api_jobs__job_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobPatchOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batch_create_api_jobs_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -1980,6 +2310,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EvaluatePostingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_url_api_import_url_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportUrlIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportUrlOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_csv_api_import_csv_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_preview_csv_api_import_csv_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CsvPreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commit_csv_api_import_csv_commit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CsvCommitIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CsvCommitOut"];
                 };
             };
             /** @description Validation Error */

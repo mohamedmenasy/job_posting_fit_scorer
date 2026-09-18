@@ -5,43 +5,35 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { PageHeader } from "@/components/common";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { type JobPostingIn, useEvaluatePosting, useMeta, useProfile } from "@/lib/api/hooks";
-import { enumOptions } from "@/lib/format";
-
-const MIN_DESCRIPTION = 50;
+import { CsvTab } from "@/components/import/csv-tab";
+import {
+  EMPTY_FORM,
+  MIN_DESCRIPTION,
+  type PostingForm,
+  PostingFields,
+  SubmitBar,
+  toJobPosting,
+} from "@/components/import/posting-form";
+import { UrlTab } from "@/components/import/url-tab";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useEvaluatePosting, useMeta, useProfile } from "@/lib/api/hooks";
 
 export default function NewJobPage() {
   const router = useRouter();
   const profile = useProfile();
   const meta = useMeta();
   const evaluate = useEvaluatePosting();
-  const [form, setForm] = useState({ company: "", title: "", location: "", source_url: "", salary_text: "", source: "manual", description: "" });
-  const set = (key: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const [form, setForm] = useState<PostingForm>(EMPTY_FORM);
   const noProfile = profile.isSuccess && profile.data === null;
-  const length = form.description.trim().length;
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const body: JobPostingIn = {
-      company: form.company,
-      title: form.title,
-      description: form.description,
-      location: form.location || null,
-      source_url: form.source_url || null,
-      salary_text: form.salary_text || null,
-      source: form.source as JobPostingIn["source"],
-    };
-    evaluate.mutate(body, { onSuccess: (data) => router.push(`/jobs/${data.job.id}`) });
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    evaluate.mutate(toJobPosting(form), { onSuccess: (data) => router.push(`/jobs/${data.job.id}`) });
   }
 
   return (
-    <form onSubmit={submit} className="max-w-6xl">
-      <PageHeader title="New job" description="Paste a posting. It is saved as written and evaluated against your current profile." />
+    <div className="max-w-6xl">
+      <PageHeader title="New job" description="Paste a posting, fetch one from a public job board, or import a spreadsheet." />
       {noProfile && (
         <div className="bg-status-review/10 text-status-review mb-6 rounded px-3 py-2">
           Jobs are evaluated against your profile.{" "}
@@ -51,61 +43,28 @@ export default function NewJobPage() {
           first.
         </div>
       )}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="grid gap-1.5">
-          <Label htmlFor="description">Job description</Label>
-          <Textarea
-            id="description"
-            autoFocus
-            required
-            minLength={MIN_DESCRIPTION}
-            value={form.description}
-            onChange={set("description")}
-            placeholder="Paste the full posting, including requirements and any work authorization text"
-            className="min-h-[60vh] text-sm leading-relaxed"
-          />
-          <p className="text-muted-foreground tabular text-xs">
-            {length < MIN_DESCRIPTION ? `${MIN_DESCRIPTION - length} more characters needed` : `${length} characters`}
-          </p>
-        </div>
-        <div className="grid content-start gap-4">
-          {(
-            [
-              ["company", "Company", true],
-              ["title", "Title", true],
-              ["location", "Location", false],
-              ["salary_text", "Salary", false],
-              ["source_url", "Posting URL", false],
-            ] as const
-          ).map(([key, label, required]) => (
-            <div key={key} className="grid gap-1.5">
-              <Label htmlFor={key}>
-                {label}
-                {!required && <span className="text-muted-foreground font-normal"> (optional)</span>}
-              </Label>
-              <Input id={key} required={required} type={key === "source_url" ? "url" : "text"} maxLength={200} value={form[key]} onChange={set(key)} />
-            </div>
-          ))}
-          <div className="grid gap-1.5">
-            <Label htmlFor="source">Source</Label>
-            <Select value={form.source} onValueChange={(v) => setForm((f) => ({ ...f, source: v }))}>
-              <SelectTrigger id="source" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {enumOptions(meta.data, "JobSource").map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button type="submit" className="mt-2" disabled={evaluate.isPending || noProfile || length < MIN_DESCRIPTION}>
-            {evaluate.isPending ? "Saving" : "Save and evaluate"}
-          </Button>
-        </div>
-      </div>
-    </form>
+      <Tabs defaultValue="paste">
+        <TabsList className="mb-6">
+          <TabsTrigger value="paste">Paste</TabsTrigger>
+          <TabsTrigger value="url">From URL</TabsTrigger>
+          <TabsTrigger value="csv">From CSV</TabsTrigger>
+        </TabsList>
+        <TabsContent value="paste">
+          <form onSubmit={submit}>
+            <PostingFields form={form} meta={meta.data} autoFocusDescription onChange={(patch) => setForm({ ...form, ...patch })} />
+            <SubmitBar
+              pending={evaluate.isPending}
+              disabled={evaluate.isPending || noProfile || form.description.trim().length < MIN_DESCRIPTION || !form.company || !form.title}
+            />
+          </form>
+        </TabsContent>
+        <TabsContent value="url">
+          <UrlTab disabled={noProfile} />
+        </TabsContent>
+        <TabsContent value="csv">
+          <CsvTab />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
