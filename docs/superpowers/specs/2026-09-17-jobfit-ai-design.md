@@ -1091,7 +1091,8 @@ Definition of done = brief §52.
 
 ### Phase 2 — separate spec/plan
 
-Compare view (2–5 jobs; brief §34 columns), duplicate detection (code-side candidate blocking on company/title/location similarity + TypeSafe pair Score with same/review/different levels, per the entity-alignment cookbook; duplicates excluded from counts by default), CSV import, URL fetch via `JobContentProvider` (public pages only, robots.txt respected, SSRF protection, no authentication/CAPTCHA bypass).
+**Delivered:** CSV import and URL fetch via `JobContentProvider` — see `docs/superpowers/specs/2026-09-17-jobfit-import-design.md`.
+**Remaining:** compare view (2–5 jobs; brief §34 columns), duplicate detection (code-side candidate blocking on company/title/location similarity + TypeSafe pair Score with same/review/different levels, per the entity-alignment cookbook; duplicates excluded from counts by default), CSV import, URL fetch via `JobContentProvider` (public pages only, robots.txt respected, SSRF protection, no authentication/CAPTCHA bypass).
 
 ### Phase 3 — future
 

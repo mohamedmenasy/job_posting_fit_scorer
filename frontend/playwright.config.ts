@@ -26,7 +26,7 @@ export default defineConfig({
     {
       command: "npx next dev --port 3010",
       url: "http://127.0.0.1:3010",
-      env: { BACKEND_URL: "http://127.0.0.1:8010" },
+      env: { BACKEND_URL: "http://127.0.0.1:8010", NEXT_DIST_DIR: ".next-e2e" },
       reuseExistingServer: false,
       timeout: 120_000,
     },

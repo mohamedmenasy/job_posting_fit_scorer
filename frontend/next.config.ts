@@ -5,6 +5,8 @@ import type { NextConfig } from "next";
 const backendUrl = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 
 const nextConfig: NextConfig = {
+  // Tests use their own build directory so `make e2e` can run while `make dev` is up.
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   allowedDevOrigins: ["127.0.0.1"],
   devIndicators: false,
   async rewrites() {
